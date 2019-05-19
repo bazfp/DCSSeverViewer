@@ -1,0 +1,182 @@
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nunjucks/3.0.1/nunjucks.js"></script>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css"
+        integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.18/css/dataTables.bootstrap4.min.css">
+    <script src="https://cdn.datatables.net/1.10.18/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.18/js/dataTables.bootstrap4.min.js"></script>
+    <style>
+        body {
+            display: -ms-flexbox;
+            display: -webkit-box;
+            display: flex;
+            -ms-flex-pack: center;
+            -webkit-box-pack: center;
+            justify-content: center;
+            color: #fff;
+            animation: backgroundChange 90s infinite;
+            text-shadow: 0 .05rem .1rem rgba(0, 0, 0, .5);
+        }
+
+        table.dataTable tbody td.no-padding {
+            padding: 0;
+        }
+
+        .page-link 
+        {
+            background-color: #343a40;
+            border-color: #454d55;
+            color: white;
+        }
+
+        .page-item.active .page-link
+        {
+            animation: backgroundChange 90s infinite;
+            border-color: #fff;
+        }
+
+        .page-item.disabled .page-link
+        {
+            background-color: #4d555e;
+            border-color: #454d55
+        }
+
+        @keyframes backgroundChange
+        {
+            0%   {background: #0093a3;}
+            25%  {background: #934dd4;}
+            50%  {background: #c13636;}
+            75%  {background: #8aa300;}
+            100% {background: #0093a3;}
+        }
+        @-webkit-keyframes backgroundChange
+        {
+            0%   {background: #0093a3;}
+            25%  {background: #934dd4;}
+            50%  {background: #c13636;}
+            75%  {background: #8aa300;}
+            100% {background: #0093a3;}
+        }
+
+    </style>
+    <script>
+        $(function () {
+            console.log($('xmp').html());
+            $.ajax("https://hq.x51squadron.com/api/servers/dcs").done(function (apiResult) {
+                window.apiResult = apiResult;
+                nunjucks.renderString($('xmp').html(), { api: apiResult }, function (err, res) {
+                    $('body').html(res).promise().done(function () {
+                        console.log($('table'));
+                        window.table = $('table').DataTable({
+                            "orderClasses": false,
+                            "data": apiResult['servers'],
+                            columns: [
+                                {
+                                    "orderable": false,
+                                    data: 'serverInfo',
+                                    "render": function (data) {
+                                        return data ? '<i class="fas fa-info-circle d-flex justify-content-center"></i>' : ''
+                                    }
+                                },
+                                { data: 'serverName' },
+                                { data: 'missionName' },
+                                { data: 'missionTime' },
+                                { data: 'maxPlayers' },
+                                { data: 'numPlayers' },
+                                { data: 'passworded',
+                                    "render": function (data) {
+                                        return data ? '<i class="fas fa-lock d-flex justify-content-center"></i>' : ''
+                                    } },
+                                { data: 'address' },
+                                { data: 'port' },
+                                { data: 'version' }
+                            ],
+                            "order": [[3, 'desc']],
+                            "pageLength": 50,
+
+                        });
+
+                        $('tbody').on('click', 'td', function () {
+
+                            var tr = $(this).closest('tr');
+                            var row = table.row(tr);
+                            if (!row.data().serverInfo) return;
+
+                            if (row.child.isShown()) {
+                                // This row is already open - close it
+                                $('p', row.child()).slideUp(function () {
+                                    row.child.hide();
+                                    tr.removeClass('shown');
+                                });
+                            }
+                            else {
+                                // Open this row
+                                row.child($("<p></p>").css({ "white-space": "pre-line" })
+                                    .addClass("accordian-body collapsed")
+                                    .css({ "display" : "none", "padding" : "1em" })
+                                    .text(row.data().serverInfo), 'no-padding')
+                                    .show();
+                                tr.addClass('shown');
+                                $('p', row.child()).slideDown();
+                            }
+                        });
+
+                    });
+                    //console.log(res);
+                    console.log(err);
+
+                })
+            }).fail(function (error) {
+                console.log(error);
+            });
+
+            // Accordian helper function
+            $('body').on('click.collapse-next.data-api', '[data-toggle=collapse-next]', function (e) {
+                var $target = $(this).next().find('.collapse');
+                $target.collapse('toggle');
+            });
+
+        });
+    </script>
+</head>
+
+<body>
+    <div class="d-flex justify-content-center">
+        <div class="spinner-grow" role="status" style="width: 20em; height: 20em">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+    <xmp style="display:none;">
+        <div class="container-fluid">
+            <main>
+                <h1 class="d-flex justify-content-center">DCS Server List</h1>
+            </main>
+            <table class="table table-dark table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Details</th>
+                        <th scope="col" class="w-25">Server Name</th>
+                        <th scope="col">Mission Name</th>
+                        <th scope="col">Mission Time</th>
+                        <th scope="col">Max players</th>
+                        <th scope="col">Num Players</th>
+                        <th scope="col">Password</th>
+                        <th scope="col">Address</th>
+                        <th scope="col">Port</th>
+                        <th scope="col">Version</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </xmp>
+</body>
